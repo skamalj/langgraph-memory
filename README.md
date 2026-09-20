@@ -31,6 +31,18 @@ for m in engine.recall("what does the user prefer for travel?", namespace=("memo
 
 All weights, the half-life, thresholds and oversampling live in `MemoryConfig`.
 
+## Choosing the model
+
+There is **no default model** — pass one explicitly. A memory engine that silently spends tokens on every prune would be a bad surprise, and the rest of the toolkit avoids picking a vendor for you. The embedding model is separate: it lives on the store's `IndexConfig`.
+
+| Form | Example | Notes |
+|---|---|---|
+| Name string | `MemoryEngine(store, "anthropic:claude-sonnet-5")` | resolved by LangChain's `init_chat_model`; the provider package (`langchain-anthropic`, `langchain-aws`, `langchain-openai`, …) must be installed and configured |
+| Model instance | `MemoryEngine(store, ChatBedrockConverse(model=..., region_name=...))` | any LangChain `BaseChatModel`; control temperature, region, timeouts, share a client |
+| Callables, no model | `MemoryEngine(store, extractor=fn, consolidator=fn)` | `extractor(text) -> list[ExtractedFact]`, `consolidator(fact, similar) -> ConsolidationDecision`; how the tests run with zero LLM calls; mix with `model` for the other step |
+
+The same model serves both LLM steps, extraction and the consolidation decision, and both use `with_structured_output`, so the model must support tool calling or JSON-schema output (current Anthropic, OpenAI, Bedrock Converse and Gemini chat models all do). The system prompts are overridable: `LLMExtractor(model, prompt=...)` and `LLMConsolidator(model, prompt=...)`, passed as `extractor=` / `consolidator=`, let you steer what counts as worth remembering for your domain without touching the pipeline.
+
 ## Integrations
 
 ```python
